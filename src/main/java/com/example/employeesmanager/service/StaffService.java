@@ -13,7 +13,8 @@ import java.util.*;
 
 @Service
 public class StaffService {
-
+    @Autowired
+    private DepartmentFacilityRepository departmentFacilityRepository;
     @Autowired
     private StaffRepository staffRepository;
 
@@ -185,9 +186,23 @@ public class StaffService {
                         Major major = majorRepository.findByCode(majorCode)
                                 .orElseThrow(() -> new IllegalArgumentException("Chuyên ngành không tồn tại: " + majorCode));
 
-                        // Tìm hoặc tạo mới MajorFacility
+                        // Tìm hoặc tạo DepartmentFacility
+                        DepartmentFacility departmentFacility = departmentFacilityRepository
+                                .findByFacilityIdAndDepartmentId(facility.getId(), department.getId())
+                                .orElseGet(() -> {
+                                    DepartmentFacility df = new DepartmentFacility();
+                                    df.setId(UUID.randomUUID());
+                                    df.setFacility(facility);
+                                    df.setDepartment(department);
+                                    df.setStatus(1);
+                                    df.setCreatedDate(System.currentTimeMillis());
+                                    df.setLastModifiedDate(System.currentTimeMillis());
+                                    return departmentFacilityRepository.save(df);
+                                });
+
+// Tìm hoặc tạo mới MajorFacility
                         MajorFacility majorFacility = majorFacilityRepository
-                                .findByMajorAndDepartmentFacility(major, departmentFacility)
+                                .findByMajorIdAndDepartmentFacilityId(major.getId(), departmentFacility.getId())
                                 .orElseGet(() -> {
                                     MajorFacility mf = new MajorFacility();
                                     mf.setId(UUID.randomUUID());

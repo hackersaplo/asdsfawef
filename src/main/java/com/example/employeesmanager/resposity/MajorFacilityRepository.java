@@ -12,5 +12,5 @@ import java.util.UUID;
 public interface MajorFacilityRepository extends JpaRepository<MajorFacility, UUID> {
     List<MajorFacility> findByMajorId(UUID majorId);
     List<MajorFacility> findByDepartmentFacilityId(UUID departmentFacilityId);
-    Optional<MajorFacility> findByMajorAndDepartmentFacility(Major major, DepartmentFacility departmentFacility);
+    Optional<MajorFacility> findByMajorIdAndDepartmentFacilityId(UUID majorId, UUID departmentFacilityId);
 }
