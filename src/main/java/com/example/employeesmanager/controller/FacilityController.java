@@ -29,11 +29,19 @@ public class FacilityController {
     public ResponseEntity<?> getDepartmentsByFacility(@PathVariable UUID facilityId) {
         try {
             System.out.println("Đang lấy bộ môn cho cơ sở ID: " + facilityId);
+
+            Optional<Facility> facilityOpt = facilityService.getFacilityById(facilityId);
+            if (facilityOpt.isEmpty()) {
+                System.out.println("Không tìm thấy cơ sở với ID: " + facilityId);
+                return ResponseEntity.ok(Collections.emptyList());
+            }
+
             List<DepartmentFacility> departmentFacilities = departmentFacilityService.getByFacilityId(facilityId);
             System.out.println("Số bộ môn tìm thấy: " + departmentFacilities.size());
 
             List<Department> departments = departmentFacilities.stream()
                     .map(DepartmentFacility::getDepartment)
+                    .filter(Objects::nonNull)
                     .distinct()
                     .collect(Collectors.toList());
 

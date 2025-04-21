@@ -13,11 +13,11 @@ public class MajorFacility {
     @Id
     private UUID id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "id_department_facility")
     private DepartmentFacility departmentFacility;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "id_major")
     private Major major;
 
