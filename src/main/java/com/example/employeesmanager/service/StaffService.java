@@ -187,7 +187,7 @@ public class StaffService {
 
                         // Tìm hoặc tạo mới MajorFacility
                         MajorFacility majorFacility = majorFacilityRepository
-                                .findByMajorAndDepartmentFacility(major, departmentFacility)
+                                .findByMajorIdAndDepartmentFacilityId(major, departmentFacilityId)
                                 .orElseGet(() -> {
                                     MajorFacility mf = new MajorFacility();
                                     mf.setId(UUID.randomUUID());
