@@ -18,7 +18,7 @@ public class ImportHistoryController {
 
     @GetMapping
     public ResponseEntity<List<ImportHistory>> getAllImportHistory() {
-        List<ImportHistory> list = importHistoryRepository.findAll();
+        List<ImportHistory> list = importHistoryRepository.findAllByOrderByImportDateDesc();
         return ResponseEntity.ok(list);
     }
 }

@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -24,5 +25,13 @@ public class MajorFacilityService {
 
     public void deleteById(UUID id) {
         majorFacilityRepository.deleteById(id);
+    }
+
+    public List<MajorFacility> getByDepartmentFacilityId(UUID id) {
+        return majorFacilityRepository.findByDepartmentFacilityId(id);
+    }
+
+    public Optional<MajorFacility> getById(UUID id) {
+        return majorFacilityRepository.findById(id);
     }
 }

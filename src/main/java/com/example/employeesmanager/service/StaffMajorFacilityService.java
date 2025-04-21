@@ -14,6 +14,9 @@ public class StaffMajorFacilityService {
     @Autowired
     private StaffMajorFacilityRepository staffMajorFacilityRepository;
 
+    @Autowired
+    private com.example.employeesmanager.resposity.MajorFacilityRepository majorFacilityRepository;
+
     public List<StaffMajorFacility> getByStaffId(UUID staffId) {
         return staffMajorFacilityRepository.findByStaffId(staffId);
     }
@@ -24,6 +27,12 @@ public class StaffMajorFacilityService {
 
     public void deleteById(UUID id) {
         staffMajorFacilityRepository.deleteById(id);
+    }
+
+    public UUID getFacilityIdByMajorFacilityId(UUID majorFacilityId) {
+        com.example.employeesmanager.entity.MajorFacility majorFacility = majorFacilityRepository.findById(majorFacilityId)
+            .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy bộ môn chuyên ngành"));
+        return majorFacility.getDepartmentFacility().getFacility().getId();
     }
 }
 

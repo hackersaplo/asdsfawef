@@ -24,6 +24,18 @@ public class StaffController {
     @Autowired
     private StaffMajorFacilityService staffMajorFacilityService;
 
+    @PostMapping("/import")
+    public ResponseEntity<?> importStaff(@RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+        try {
+            var result = staffService.importStaffFromExcel(file);
+            return ResponseEntity.ok(result);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Lỗi khi import file");
+        }
+    }
+
     @GetMapping
     public List<Staff> getAllStaff() {
         return staffService.getAllStaff();
@@ -104,9 +116,14 @@ public class StaffController {
 
             // Kiểm tra ràng buộc 1 bộ môn chuyên ngành trên 1 cơ sở
             UUID majorFacilityId = staffMajorFacility.getMajorFacility().getId();
+            UUID facilityId = staffMajorFacilityService.getFacilityIdByMajorFacilityId(majorFacilityId);
+
             List<StaffMajorFacility> existingMajors = staffMajorFacilityService.getByStaffId(id);
             boolean exists = existingMajors.stream()
-                .anyMatch(smf -> smf.getMajorFacility().getId().equals(majorFacilityId));
+                .anyMatch(smf -> {
+                    UUID existingFacilityId = staffMajorFacilityService.getFacilityIdByMajorFacilityId(smf.getMajorFacility().getId());
+                    return existingFacilityId.equals(facilityId);
+                });
             if (exists) {
                 throw new IllegalArgumentException("Nhân viên đã có bộ môn chuyên ngành trong cơ sở này");
             }
