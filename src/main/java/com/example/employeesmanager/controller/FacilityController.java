@@ -28,13 +28,20 @@ public class FacilityController {
     @GetMapping("/{facilityId}/departments")
     public ResponseEntity<?> getDepartmentsByFacility(@PathVariable UUID facilityId) {
         try {
+            System.out.println("Đang lấy bộ môn cho cơ sở ID: " + facilityId);
             List<DepartmentFacility> departmentFacilities = departmentFacilityService.getByFacilityId(facilityId);
+            System.out.println("Số bộ môn tìm thấy: " + departmentFacilities.size());
+
             List<Department> departments = departmentFacilities.stream()
                     .map(DepartmentFacility::getDepartment)
                     .distinct()
                     .collect(Collectors.toList());
+
+            System.out.println("Danh sách bộ môn distinct: " + departments.size());
             return ResponseEntity.ok(departments);
         } catch (Exception e) {
+            System.err.println("Lỗi khi lấy bộ môn: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
