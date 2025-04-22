@@ -7,6 +7,9 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
 import java.util.*;
@@ -64,8 +67,20 @@ public class StaffService {
         }).orElse(null);
     }
 
+
+    private static final Logger logger = LoggerFactory.getLogger(StaffService.class);
+
+    @Transactional
     public void deleteStaff(UUID id) {
-        staffRepository.deleteById(id);
+        try {
+
+            staffMajorFacilityRepository.deleteByStaffId(id);
+
+            staffRepository.deleteById(id);
+        } catch (Exception e) {
+            logger.error("Lỗi khi xóa nhân viên với id: " + id, e);
+            throw new RuntimeException("Không thể xóa nhân viên: " + e.getMessage(), e);
+        }
     }
 
     public Staff toggleStatus(UUID id) {
@@ -114,7 +129,7 @@ public class StaffService {
             throw new IllegalArgumentException("Email FE không được chứa khoảng trắng và phải đúng định dạng");
         }
 
-        // Kiểm tra tiếng Việt trong email
+
         String vietnamesePattern = ".*[àáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶÈÉẺẼẸÊỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰỲÝỶỸỴĐ].*";
         if (staff.getAccountFpt().matches(vietnamesePattern)) {
             throw new IllegalArgumentException("Email FPT không được chứa ký tự tiếng Việt");
@@ -123,7 +138,7 @@ public class StaffService {
             throw new IllegalArgumentException("Email FE không được chứa ký tự tiếng Việt");
         }
 
-        // Kiểm tra email phải chứa mã nhân viên
+
         if (!staff.getAccountFpt().contains(staff.getStaffCode().toLowerCase())) {
             throw new IllegalArgumentException("Email FPT phải chứa mã nhân viên");
         }
@@ -160,19 +175,30 @@ public class StaffService {
 
                 try {
                     // Đọc thông tin nhân viên
-                    Staff staff = new Staff();
-                    staff.setStaffCode(getCellStringValue(row.getCell(0)));
-                    staff.setName(getCellStringValue(row.getCell(1)));
-                    staff.setAccountFpt(getCellStringValue(row.getCell(2)));
-                    staff.setAccountFe(getCellStringValue(row.getCell(3)));
-                    staff.setStatus(Integer.parseInt(getCellStringValue(row.getCell(4))));
-                    staff.setCreatedDate(System.currentTimeMillis());
-                    staff.setLastModifiedDate(System.currentTimeMillis());
+                    String staffCode = getCellStringValue(row.getCell(0));
+                    String name = getCellStringValue(row.getCell(1));
+                    String accountFpt = getCellStringValue(row.getCell(2));
+                    String accountFe = getCellStringValue(row.getCell(3));
+                    Integer status = Integer.parseInt(getCellStringValue(row.getCell(4)));
+                    Long currentTime = System.currentTimeMillis();
 
-                    validateStaff(staff, null);
+                    // Check if staff already exists by staffCode
+                    Staff staff = staffRepository.findByStaffCode(staffCode).orElse(new Staff());
+                    boolean isNew = (staff.getId() == null);
+
+                    staff.setStaffCode(staffCode);
+                    staff.setName(name);
+                    staff.setAccountFpt(accountFpt);
+                    staff.setAccountFe(accountFe);
+                    staff.setStatus(status);
+                    if (isNew) {
+                        staff.setCreatedDate(currentTime);
+                    }
+                    staff.setLastModifiedDate(currentTime);
+
+                    validateStaff(staff, isNew ? null : staff.getId());
                     Staff savedStaff = staffRepository.save(staff);
 
-                    // Xử lý bộ môn chuyên ngành (nếu có)
                     String facilityCode = getCellStringValue(row.getCell(5));
                     String departmentCode = getCellStringValue(row.getCell(6));
                     String majorCode = getCellStringValue(row.getCell(7));
@@ -186,7 +212,6 @@ public class StaffService {
                         Major major = majorRepository.findByCode(majorCode)
                                 .orElseThrow(() -> new IllegalArgumentException("Chuyên ngành không tồn tại: " + majorCode));
 
-                        // Tìm hoặc tạo DepartmentFacility
                         DepartmentFacility departmentFacility = departmentFacilityRepository
                                 .findByFacilityIdAndDepartmentId(facility.getId(), department.getId())
                                 .orElseGet(() -> {
@@ -195,12 +220,11 @@ public class StaffService {
                                     df.setFacility(facility);
                                     df.setDepartment(department);
                                     df.setStatus(1);
-                                    df.setCreatedDate(System.currentTimeMillis());
-                                    df.setLastModifiedDate(System.currentTimeMillis());
+                                    df.setCreatedDate(currentTime);
+                                    df.setLastModifiedDate(currentTime);
                                     return departmentFacilityRepository.save(df);
                                 });
 
-// Tìm hoặc tạo mới MajorFacility
                         MajorFacility majorFacility = majorFacilityRepository
                                 .findByMajorIdAndDepartmentFacilityId(major.getId(), departmentFacility.getId())
                                 .orElseGet(() -> {
@@ -209,19 +233,29 @@ public class StaffService {
                                     mf.setMajor(major);
                                     mf.setDepartmentFacility(departmentFacility);
                                     mf.setStatus(1);
-                                    mf.setCreatedDate(System.currentTimeMillis());
-                                    mf.setLastModifiedDate(System.currentTimeMillis());
+                                    mf.setCreatedDate(currentTime);
+                                    mf.setLastModifiedDate(currentTime);
                                     return majorFacilityRepository.save(mf);
                                 });
 
-                        // Tạo StaffMajorFacility
-                        StaffMajorFacility staffMajorFacility = new StaffMajorFacility();
-                        staffMajorFacility.setId(UUID.randomUUID());
-                        staffMajorFacility.setStaff(savedStaff);
-                        staffMajorFacility.setMajorFacility(majorFacility);
-                        staffMajorFacility.setStatus(positionStr.isEmpty() ? 1 : Integer.parseInt(positionStr));
-                        staffMajorFacility.setCreatedDate(System.currentTimeMillis());
-                        staffMajorFacility.setLastModifiedDate(System.currentTimeMillis());
+                        // Check if StaffMajorFacility already exists for this staff and majorFacility
+                        Optional<StaffMajorFacility> existingSmfOpt = staffMajorFacilityRepository
+                                .findByStaffIdAndMajorFacilityId(savedStaff.getId(), majorFacility.getId());
+
+                        StaffMajorFacility staffMajorFacility;
+                        if (existingSmfOpt.isPresent()) {
+                            staffMajorFacility = existingSmfOpt.get();
+                            staffMajorFacility.setStatus(positionStr.isEmpty() ? 1 : Integer.parseInt(positionStr));
+                            staffMajorFacility.setLastModifiedDate(currentTime);
+                        } else {
+                            staffMajorFacility = new StaffMajorFacility();
+                            staffMajorFacility.setId(UUID.randomUUID());
+                            staffMajorFacility.setStaff(savedStaff);
+                            staffMajorFacility.setMajorFacility(majorFacility);
+                            staffMajorFacility.setStatus(positionStr.isEmpty() ? 1 : Integer.parseInt(positionStr));
+                            staffMajorFacility.setCreatedDate(currentTime);
+                            staffMajorFacility.setLastModifiedDate(currentTime);
+                        }
 
                         staffMajorFacilityRepository.save(staffMajorFacility);
                     }
@@ -237,7 +271,7 @@ public class StaffService {
             }
         }
 
-        // Lưu lịch sử import
+
         ImportHistory importHistory = new ImportHistory();
         importHistory.setId(UUID.randomUUID());
         importHistory.setImportDate(System.currentTimeMillis());

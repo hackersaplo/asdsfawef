@@ -1,9 +1,17 @@
 package com.example.employeesmanager.entity;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.List;
 import java.util.UUID;
+
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.UUIDSerializer;
+import com.fasterxml.jackson.databind.deser.std.UUIDDeserializer;
 
 @Entity
 @Table(name = "staff")
@@ -16,6 +24,8 @@ public class Staff {
     @GeneratedValue(generator = "uuid2")
     @org.hibernate.annotations.GenericGenerator(name = "uuid2", strategy = "uuid2")
     @Column(columnDefinition = "BINARY(16)")
+    @JsonSerialize(using = UUIDSerializer.class)
+    @JsonDeserialize(using = UUIDDeserializer.class)
     private UUID id;
 
     @Column(name = "account_fpt", length = 100, nullable = false, unique = true)
@@ -38,4 +48,7 @@ public class Staff {
 
     @Column(name = "last_modified_date")
     private Long lastModifiedDate;
+
+    @OneToMany(mappedBy = "staff", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<StaffMajorFacility> staffMajorFacilities;
 }

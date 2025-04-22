@@ -79,9 +79,27 @@ public class StaffController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteStaff(@PathVariable UUID id) {
-        staffService.deleteStaff(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<?> deleteStaff(@PathVariable UUID id) {
+        try {
+            // Kiểm tra xem nhân viên có tồn tại không
+            Optional<Staff> staffOpt = staffService.getStaffById(id);
+            if (staffOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            // Xóa tất cả các liên kết của nhân viên trước
+            List<StaffMajorFacility> staffMajors = staffMajorFacilityService.getByStaffId(id);
+            for (StaffMajorFacility smf : staffMajors) {
+                staffMajorFacilityService.deleteById(smf.getId());
+            }
+
+            // Sau đó xóa nhân viên
+            staffService.deleteStaff(id);
+            return ResponseEntity.noContent().build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Lỗi khi xóa nhân viên: " + e.getMessage());
+        }
     }
 
     @PatchMapping("/{id}/toggle-status")

@@ -25,6 +25,7 @@ public class StaffMajorFacilityService {
         return staffMajorFacilityRepository.save(entity);
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public void deleteById(UUID id) {
         staffMajorFacilityRepository.deleteById(id);
     }
